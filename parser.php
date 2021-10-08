@@ -37,10 +37,10 @@ foreach ($log as $key => $value) {
 	$parserCounter['traffic'] = $parserCounter['traffic'] + $traffic;
 }
 
-preg_match_all('/ Googlebot/', $log_string, $googleCrawler);
-preg_match_all('/ Baiduspider/', $log_string, $baiduCrawler);
-preg_match_all('/ Bingbot/', $log_string, $bingCrawler);
-preg_match_all('/ YandexBot/', $log_string, $yandexCrawler);
+preg_match_all('/ Googlebot/', $logString, $googleCrawler);
+preg_match_all('/ Baiduspider/', $logString, $baiduCrawler);
+preg_match_all('/ Bingbot/', $logString, $bingCrawler);
+preg_match_all('/ YandexBot/', $logString, $yandexCrawler);
 
 
 $log_data = array();
