@@ -3,7 +3,7 @@
 $logPath = $argv[1];
 
 $log = file($logPath);
-$log_string = implode('', $log);
+$logString = implode('', $log);
 
 $parserCounter = array();
 $parserCounter['traffic'] = 0;
