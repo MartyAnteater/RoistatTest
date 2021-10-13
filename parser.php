@@ -2,55 +2,76 @@
 
 $logPath = $argv[1];
 
-$log = file($logPath);
-$logString = implode('', $log);
-
 $parserCounter = array();
 $parserCounter['traffic'] = 0;
 $parserCounter['statusCodes'] = array();
+$parserCounter['views'] = 0;
+$parserCounter['crawlers'] = array('Google' => 0,
+								   'Bing' => 0,
+								   'Baidu' => 0,
+								   'Yandex' => 0);
 
-foreach ($log as $key => $value) {
-	$urlStartPosition = strpos($value, ' /') + 1;
-	$urlStartSubstring = substr($value, $urlStartPosition);
+$logStream = fopen($logPath, 'r');
 
-	$urlPlusProtocolEndPosition = strpos($urlStartSubstring, '" ');
-	$urlPlusProtocolSubstring = substr($urlStartSubstring, 0, $urlPlusProtocolEndPosition);
+while(!feof($logStream)) {
+	$logLine = trim(fgets($logStream));
 
-	$urlEndPosition = strpos($urlPlusProtocolSubstring, ' ');
-	$url = substr($urlPlusProtocolSubstring, 0, $urlEndPosition);
+	if($logLine !== ''){
+		$urlStartPosition = strpos($logLine, ' /') + 1;
+		$urlStartSubstring = substr($logLine, $urlStartPosition);
 
-	$parserCounter['urls'][$url] = TRUE;
-	
-	$codeAndTrafficStartPosition = strpos($value, '" ') + 2;
-	$codeAndTrafficSubstring = substr($value, $codeAndTrafficStartPosition);
+		$urlPlusProtocolEndPosition = strpos($urlStartSubstring, '" ');
+		$urlPlusProtocolSubstring = substr($urlStartSubstring, 0, $urlPlusProtocolEndPosition);
 
-	$codeAndTrafficEndPosition = strpos($codeAndTrafficSubstring, ' "');
-	$codeAndTrafficSubstring = substr($codeAndTrafficSubstring, 0, $codeAndTrafficEndPosition);
-	$codeAndTraffic = split(' ', $codeAndTrafficSubstring);
-	$code = $codeAndTraffic[0];
-	$traffic = $codeAndTraffic[1];
+		$urlEndPosition = strpos($urlPlusProtocolSubstring, ' ');
+		$url = substr($urlPlusProtocolSubstring, 0, $urlEndPosition);
 
-	if(!array_key_exists($code, $parserCounter['statusCodes'])){
-		$parserCounter['statusCodes'][$code] = 0;
+		$parserCounter['urls'][$url] = TRUE;
+		
+		$codeAndTrafficStartPosition = strpos($logLine, '" ') + 2;
+		$codeAndTrafficSubstring = substr($logLine, $codeAndTrafficStartPosition);
+
+		$codeAndTrafficEndPosition = strpos($codeAndTrafficSubstring, ' "');
+		$codeAndTrafficSubstring = substr($codeAndTrafficSubstring, 0, $codeAndTrafficEndPosition);
+		$codeAndTraffic = split(' ', $codeAndTrafficSubstring);
+		$code = $codeAndTraffic[0];
+		$traffic = $codeAndTraffic[1];
+
+		if(!array_key_exists($code, $parserCounter['statusCodes'])){
+			$parserCounter['statusCodes'][$code] = 0;
+		}
+		$parserCounter['statusCodes'][$code] = $parserCounter['statusCodes'][$code] + 1;
+		$parserCounter['traffic'] = $parserCounter['traffic'] + $traffic;
+
+		$googleCrawler = strpos($logLine, ' Googlebot');
+		$baiduCrawler = strpos($logLine, ' Baiduspider');
+		$bingCrawler = strpos($logLine, ' Bingbot');
+		$yandexCrawler = strpos($logLine, ' YandexBot');
+
+		if($googleCrawler >= 1){
+			$parserCounter['crawlers']['Google'] = $parserCounter['crawlers']['Google'] + 1;
+		}
+		else if($baiduCrawler >= 1){
+			$parserCounter['crawlers']['Bing'] = $parserCounter['crawlers']['Bing'] + 1;
+		}
+		else if($bingCrawler >= 1){
+			$parserCounter['crawlers']['Baidu'] = $parserCounter['crawlers']['Baidu'] + 1;
+		}
+		else if($yandexCrawler >= 1){
+			$parserCounter['crawlers']['Yandex'] = $parserCounter['crawlers']['Yandex'] + 1;
+		}
+
+		$parserCounter['views'] = $parserCounter['views'] + 1;
 	}
-	$parserCounter['statusCodes'][$code] = $parserCounter['statusCodes'][$code] + 1;
-	$parserCounter['traffic'] = $parserCounter['traffic'] + $traffic;
 }
 
-preg_match_all('/ Googlebot/', $logString, $googleCrawler);
-preg_match_all('/ Baiduspider/', $logString, $baiduCrawler);
-preg_match_all('/ Bingbot/', $logString, $bingCrawler);
-preg_match_all('/ YandexBot/', $logString, $yandexCrawler);
+fclose($logStream);
 
+$logData = array();
+$logData['views'] = $parserCounter['views'];
+$logData['urls'] = count($parserCounter['urls']);
+$logData['traffic'] = $parserCounter['traffic'];
+$logData['statusCodes'] = $parserCounter['statusCodes'];
+$logData['crawlers'] = $parserCounter['crawlers'];
 
-$log_data = array();
-$log_data['views'] = count($log);
-$log_data['urls'] = count($parserCounter['urls']);
-$log_data['traffic'] = $parserCounter['traffic'];
-$log_data['statusCodes'] = $parserCounter['statusCodes'];
-$log_data['crawlers'] = array('Google' => count($googleCrawler[0]),
-                              'Bing' => count($bingCrawler[0]),
-                              'Baidu' => count($baiduCrawler[0]),
-							  'Yandex' => count($yandexCrawler[0]));
-
-echo json_encode($log_data);
+echo json_encode($logData);
